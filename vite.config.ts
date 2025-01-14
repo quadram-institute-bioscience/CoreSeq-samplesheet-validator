@@ -10,5 +10,11 @@ export default defineConfig({
 				sourceMap: false
 			}
 		}
-	}
+	},
+	server: {
+		fs: {
+			allow: ['..']
+		}
+	},
+	base: ''
 });

@@ -1,4 +1,6 @@
 <script lang="ts">
+    export const prerender = true;
+    export const ssr = false; 
     import '../app.css';
     import Footer from '$lib/components/Footer.svelte';
 </script>
