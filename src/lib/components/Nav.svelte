@@ -1,5 +1,6 @@
 <script lang="ts">
     import { page } from '$app/stores';
+    import { base } from '$app/paths';
 </script>
 
 <nav class="bg-white shadow">
@@ -11,7 +12,7 @@
                 </div>
                 <div class="ml-6 flex space-x-8">
                     <a
-                        href="/nextseq500"
+                        href={`${base}/nextseq500`}
                         class={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium
                         ${$page.url.pathname === '/' 
                             ? 'border-blue-500 text-gray-900'
@@ -21,7 +22,7 @@
                         NextSeq 500/550
                     </a>
                     <a
-                        href="/nextseq2k"
+                        href={`${base}/nextseq2k`}
                         class={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium
                         ${$page.url.pathname === '/nextseq2k'
                             ? 'border-blue-500 text-gray-900'
@@ -31,7 +32,7 @@
                         NextSeq 1000/2000
                     </a>
                     <a
-                        href="/ont"
+                        href={`${base}/ont`}
                         class={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium
                         ${$page.url.pathname === '/ont'
                             ? 'border-blue-500 text-gray-900'
