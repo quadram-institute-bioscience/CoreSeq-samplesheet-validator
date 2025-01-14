@@ -755,8 +755,6 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
                     </div>
                 {/if}
             {/if}
-
-            <!-- ... rest of the existing template ... -->
         </div>
     </div>
 </div> 
