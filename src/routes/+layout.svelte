@@ -3,6 +3,7 @@
     export const ssr = false; 
     import '../app.css';
     import Footer from '$lib/components/Footer.svelte';
+    import { base } from '$app/paths';
 </script>
 
 <div class="min-h-screen flex flex-col">
