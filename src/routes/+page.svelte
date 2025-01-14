@@ -11,5 +11,5 @@
 </svelte:head>
 
 <div class="flex items-center justify-center min-h-screen">
-    <p class="text-gray-500">Redirecting to NextSeq 500...</p>
+    <p class="text-gray-500">Redirecting to NextSeq 2000...</p>
 </div>
