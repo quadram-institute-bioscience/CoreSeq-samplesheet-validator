@@ -2,7 +2,7 @@
 
 A simple svelte project for validating and generating sample sheets for Nextseq run and ONT basecalling.
 
-The app is hosted on Github Pages and can be accessed at https://quadram-institute-bioscience.github.io/sample-sheet-generator/
+The app is hosted on Github Pages and can be accessed at https://corebio.info/sample-sheet-validator
 
 ## Developing
 
