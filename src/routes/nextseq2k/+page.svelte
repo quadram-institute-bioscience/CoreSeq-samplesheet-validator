@@ -85,9 +85,34 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
             });
         }
 
+        // Update headerSection with current configuration values
+        headerSection = [
+            '[Header],,,',
+            'FileFormatVersion,2,,',
+            `RunName,${runName},,`,
+            'InstrumentPlatform,NextSeq1k2k,,',
+            'InstrumentType,NextSeq2000,,',
+            ',,,',
+            '[Reads],,,',
+            `Read1Cycles,${read1Cycle},,`,
+            `Read2Cycles,${read2Cycle},,`,
+            `Index1Cycles,${index1Cycle},,`,
+            `Index2Cycles,${index2Cycle},,`,
+            ',,,',
+            '[BCLConvert_Settings],,,',
+            `SoftwareVersion,${bclVersion},,`,
+            `BarcodeMismatchesIndex1,${barcodeMismatchesIndex1},,`,
+            `BarcodeMismatchesIndex2,${barcodeMismatchesIndex2},,`,
+            `AdapterRead1,${adapterRead1},,`,
+            `AdapterRead2,${adapterRead2},,`,
+            `NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,`,
+            ',,,',
+            '[BCLConvert_Data],,,',
+        ];
+
         // Create the final content
         const processedContent = [
-            getHeaderText(),
+            ...headerSection,
             headers.join(','),
             ...rows.map(row => row.join(','))
         ].join('\n');
@@ -107,14 +132,26 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
 
     async function handleFile(uploadedFile: File) {
         file = uploadedFile;
-        // Reset the reverse complement state when loading a new file
+        // Reset states
+        error = null;
+        result = null;
+        headers = [];
+        rows = [];
+        originalRows = [];
         reverseComplement2k.set(false);
+        fileContent = '';
+
         try {
             if (file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls')) {
                 fileContent = await parseExcel(file);
             } else {
                 fileContent = await file.text();
             }
+            
+            if (!fileContent) {
+                throw new Error('No file content received');
+            }
+            
             await processContent(fileContent);
         } catch (e) {
             error = e instanceof Error ? e.message : 'An error occurred processing the file';
@@ -123,51 +160,79 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
 
     async function processContent(content: string) {
         try {
-            const lines = content.split(/\r?\n/).filter(line => line.trim());
+            if (!content) {
+                throw new Error('Empty content received');
+            }
             
-            // Define the expected column order
-            const expectedHeaders = ['Sample_ID', 'Index2', 'Index', 'Sample_Project'];
+            const lines = content.split(/\r?\n/).filter(line => line.trim());
+            if (lines.length === 0) {
+                throw new Error('File appears to be empty');
+            }
             
             // Check if content has full structure
             const hasFullStructure = lines.some(line => line.includes('[Header]'));
             
             if (!hasFullStructure) {
-                // Parse the input headers
+                // Simple CSV format - process directly
                 const inputHeaders = lines[0].split(',').map(header => header.trim());
+                if (!inputHeaders.length) {
+                    throw new Error('No headers found in the file');
+                }
+
+                // Define required columns (case-insensitive)
+                const requiredColumns = ['sample_id', 'index2', 'index', 'sample_project'];
+                const inputHeadersLower = inputHeaders.map(h => h.toLowerCase());
                 
-                // Create a mapping of current positions to expected positions
+                // Check for required columns
+                const missingColumns = requiredColumns.filter(required => 
+                    !inputHeadersLower.includes(required)
+                );
+                
+                if (missingColumns.length > 0) {
+                    throw new Error(`Missing required columns: ${missingColumns.join(', ')}`);
+                }
+
+                // Create mapping while preserving original header cases
                 const headerMap = new Map<number, number>();
-                expectedHeaders.forEach((expected, expectedIndex) => {
-                    const currentIndex = inputHeaders.findIndex(h => 
-                        h.toLowerCase() === expected.toLowerCase()
-                    );
-                    if (currentIndex !== -1) {
-                        headerMap.set(currentIndex, expectedIndex);
+                requiredColumns.forEach((required, index) => {
+                    const inputIndex = inputHeadersLower.findIndex(h => h === required);
+                    if (inputIndex !== -1) {
+                        headerMap.set(inputIndex, index);
                     }
                 });
 
-                // Reorder the data according to expected format
-                headers = expectedHeaders;
+                // Use original input headers for the required columns
+                headers = requiredColumns.map(required => {
+                    const inputIndex = inputHeadersLower.findIndex(h => h === required);
+                    return inputHeaders[inputIndex];
+                });
+
                 originalRows = lines.slice(1)
                     .filter(line => line.trim())
                     .map(line => {
                         const cells = line.split(',').map(cell => cell.trim());
-                        const reorderedCells = new Array(expectedHeaders.length).fill('');
+                        const reorderedCells = new Array(requiredColumns.length).fill('');
                         
                         headerMap.forEach((newIndex, oldIndex) => {
-                            reorderedCells[newIndex] = cells[oldIndex] || '';
+                            if (cells[oldIndex]) {
+                                reorderedCells[newIndex] = cells[oldIndex];
+                            }
                         });
                         
                         return reorderedCells;
                     });
 
+                if (originalRows.length === 0) {
+                    throw new Error('No data rows found in the file');
+                }
+
                 // Generate header section
                 headerSection = [
                     '[Header],,,',
-                    `FileFormatVersion,2,,`,
+                    'FileFormatVersion,2,,',
                     `RunName,${runName},,`,
-                    `InstrumentPlatform,NextSeq1k2k,,`,
-                    `InstrumentType,NextSeq2000,,`,
+                    'InstrumentPlatform,NextSeq1k2k,,',
+                    'InstrumentType,NextSeq2000,,',
                     ',,,',
                     '[Reads],,,',
                     `Read1Cycles,${read1Cycle},,`,
@@ -185,14 +250,17 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
                     ',,,',
                     '[BCLConvert_Data],,,',
                 ];
+
             } else {
-                // Process full structure format
+                // Full structure format
                 let dataSection = false;
                 let dataLines: string[] = [];
                 headerSection = [];
 
+                let foundDataSection = false;
                 for (const line of lines) {
-                    if (line.trim() === '[BCLConvert_Data]') {
+                    if (line.includes('[BCLConvert_Data]')) {
+                        foundDataSection = true;
                         dataSection = true;
                         headerSection.push(line);
                         continue;
@@ -205,6 +273,14 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
                     }
                 }
 
+                if (!foundDataSection) {
+                    throw new Error('No [BCLConvert_Data] section found in the file');
+                }
+
+                if (dataLines.length === 0) {
+                    throw new Error('No data found after [BCLConvert_Data] section');
+                }
+
                 headers = dataLines[0].split(',').map(header => header.trim());
                 originalRows = dataLines.slice(1)
                     .filter(line => line.trim())
@@ -214,7 +290,7 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
             // Process Sample_ID column
             rows = originalRows.map(row => {
                 const newRow = [...row];
-                const sampleIdIndex = headers.findIndex(h => h.toLowerCase() === 'sample_id');
+                const sampleIdIndex = headers.map(h => h.toLowerCase()).indexOf('sample_id');
                 if (sampleIdIndex !== -1) {
                     newRow[sampleIdIndex] = replaceSpecialCharacters(row[sampleIdIndex]);
                 }
@@ -243,6 +319,31 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
     function downloadValidated(removeProject = false) {
         if (!headers.length || !rows.length) return;
 
+        // Update headerSection with current configuration values
+        headerSection = [
+            '[Header],,,',
+            'FileFormatVersion,2,,',
+            `RunName,${runName},,`,
+            'InstrumentPlatform,NextSeq1k2k,,',
+            'InstrumentType,NextSeq2000,,',
+            ',,,',
+            '[Reads],,,',
+            `Read1Cycles,${read1Cycle},,`,
+            `Read2Cycles,${read2Cycle},,`,
+            `Index1Cycles,${index1Cycle},,`,
+            `Index2Cycles,${index2Cycle},,`,
+            ',,,',
+            '[BCLConvert_Settings],,,',
+            `SoftwareVersion,${bclVersion},,`,
+            `BarcodeMismatchesIndex1,${barcodeMismatchesIndex1},,`,
+            `BarcodeMismatchesIndex2,${barcodeMismatchesIndex2},,`,
+            `AdapterRead1,${adapterRead1},,`,
+            `AdapterRead2,${adapterRead2},,`,
+            `NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,`,
+            ',,,',
+            '[BCLConvert_Data],,,',
+        ];
+
         let downloadHeaders = [...headers];
         let downloadRows = rows.map(row => [...row]);
 
@@ -259,7 +360,7 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
             }
         }
 
-        // Create CSV content with original header section
+        // Create CSV content with updated header section
         const csvContent = [
             ...headerSection,
             downloadHeaders.join(','),
@@ -367,7 +468,6 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
                     <li>Note: Index2 sequences can be reverse complemented using the toggle in configuration</li>
                 </ul>
             </div>
-
             <!-- Upload Section -->
             <div class="bg-white rounded-lg shadow p-4">
                 <DragAndDrop 
@@ -608,8 +708,25 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
 
                 <!-- Error Message -->
                 {#if error}
-                    <div class="rounded-lg bg-red-50 p-4 shadow ring-1 ring-red-900/5">
-                        <p class="text-red-600">{error}</p>
+                    <div class="bg-red-50 border-l-4 border-red-400 p-4 mb-4">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+                                </svg>
+                            </div>
+                            <div class="ml-3">
+                                <h3 class="text-sm font-medium text-red-800">
+                                    Error Processing File
+                                </h3>
+                                <div class="mt-2 text-sm text-red-700">
+                                    <p>{error}</p>
+                                    {#if error === 'No data section found in the file'}
+                                        <p class="mt-1">Please ensure your file contains the required [BCLConvert_Data] section or is in the correct CSV format with the required columns.</p>
+                                    {/if}
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 {/if}
 
@@ -617,6 +734,7 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
                 <div class="rounded-lg bg-white shadow ring-1 ring-gray-900/5">
                     <div class="px-4 py-2 border-b border-gray-200">
                         <h2 class="text-sm font-semibold text-gray-900">Sample Sheet Content</h2>
+                        <p class="text-xs text-gray-500">Headers: {headers.length}, Rows: {rows.length}</p>
                     </div>
                     <Table {headers} {rows} />
                 </div>
