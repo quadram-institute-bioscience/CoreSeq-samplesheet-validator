@@ -344,6 +344,30 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
                 Sample Sheet Validator NextSeq 2000
             </h1>
         </div>
+            <!-- Add this section before the Upload Section -->
+            <div class="bg-blue-50 rounded-lg shadow p-4 mb-4">
+                <h3 class="text-sm font-medium text-blue-800 mb-2">Input Requirements:</h3>
+                <ul class="list-disc list-inside text-sm text-blue-700 space-y-1">
+                    <li>File format: CSV or Excel (.xlsx, .xls)</li>
+                    <li>Required columns:
+                        <ul class="list-disc list-inside ml-4">
+                            <li>Sample_ID - Sample identifier (special characters will be removed)</li>
+                            <li>Index - i7 index sequence</li>
+                            <li>Index2 - i5 index sequence (can be reverse complemented)</li>
+                            <li>Project - Project identifier</li>
+                        </ul>
+                    </li>
+                    <li>Optional columns:
+                        <ul class="list-disc list-inside ml-4">
+                            <li>Sample_Name - Additional sample identifier</li>
+                            <li>Description - Sample description</li>
+                        </ul>
+                    </li>
+                    <li>Configuration: Run Name and Cycle settings must be specified</li>
+                    <li>Note: Index2 sequences can be reverse complemented using the toggle in configuration</li>
+                </ul>
+            </div>
+
             <!-- Upload Section -->
             <div class="bg-white rounded-lg shadow p-4">
                 <DragAndDrop 
