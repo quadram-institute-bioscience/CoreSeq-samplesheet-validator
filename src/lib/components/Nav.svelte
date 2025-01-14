@@ -14,7 +14,7 @@
                     <a
                         href={`${base}/nextseq500`}
                         class={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium
-                        ${$page.url.pathname === '/' 
+                        ${$page.url.pathname === `${base}/nextseq500` 
                             ? 'border-blue-500 text-gray-900'
                             : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                         }`}
@@ -24,8 +24,8 @@
                     <a
                         href={`${base}/nextseq2k`}
                         class={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium
-                        ${$page.url.pathname === '/nextseq2k'
-                            ? 'border-blue-500 text-gray-900'
+                        ${$page.url.pathname === `${base}/nextseq2k`
+                            ? 'border-green-500 text-gray-900'
                             : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                         }`}
                     >
@@ -34,8 +34,8 @@
                     <a
                         href={`${base}/ont`}
                         class={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium
-                        ${$page.url.pathname === '/ont'
-                            ? 'border-blue-500 text-gray-900'
+                        ${$page.url.pathname === `${base}/ont`
+                            ? 'border-orange-500 text-gray-900'
                             : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
                         }`}
                     >
