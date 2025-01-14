@@ -1,22 +1,14 @@
-# sv
+## Introduction
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+A simple svelte project for validating and generating sample sheets for Nextseq run and ONT basecalling.
 
-## Creating a project
-
-If you're seeing this, you've probably already done this step. Congrats!
-
-```bash
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
-```
+The app is hosted on Github Pages and can be accessed at https://quadram-institute-bioscience.github.io/sample-sheet-generator/
 
 ## Developing
 
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
+Clone the repository and run `npm install` to install the dependencies.
+
+Start a development server:
 
 ```bash
 npm run dev
