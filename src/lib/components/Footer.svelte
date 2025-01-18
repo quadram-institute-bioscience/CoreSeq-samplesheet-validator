@@ -7,7 +7,7 @@
         </div>
         <div class="mt-4 flex justify-center md:mt-0">
             <a 
-                href="https://github.com/quadram-institute-bioscience" 
+                href="https://github.com/quadram-institute-bioscience/sample-sheet-validator" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 class="text-gray-400 hover:text-gray-500"
