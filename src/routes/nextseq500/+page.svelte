@@ -26,9 +26,10 @@
     const normalizedContent = content.replace(/\r\n|\r|\n/g, '\n');
     const lines = normalizedContent.split('\n');
     let dataSection = false;
+    let headerLines: string[] = [];
     let dataLines: string[] = [];
 
-    // Find [Data] section and collect subsequent lines
+    // Process each line
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i].trim();
       
@@ -38,11 +39,16 @@
       // Check for [Data] section
       if (cleanLine === '[Data]') {
         dataSection = true;
+        // Reset data lines when new [Data] section is found
+        dataLines = [];
         continue;
       }
 
-      // Collect non-empty lines after [Data] section
-      if (dataSection && cleanLine.length > 0) {
+      if (!dataSection) {
+        // Collect header lines (including empty lines)
+        headerLines.push(lines[i]);
+      } else if (cleanLine.length > 0) {
+        // Collect non-empty data lines
         dataLines.push(cleanLine);
       }
     }
@@ -55,22 +61,67 @@
       throw new Error('Invalid sample sheet format: No data found after [Data] section');
     }
 
-    return dataLines;
+    return {
+      headerSection: headerLines,
+      dataLines: dataLines
+    };
+  }
+
+  function handleDuplicateSampleIds(rows: string[][], headers: string[]): string[][] {
+    const sampleIdCol = findColumnIndex(headers, 'Sample_ID');
+    if (sampleIdCol === -1) return rows;
+
+    // Track seen sample IDs and their count
+    const sampleIdCounts: { [key: string]: number } = {};
+    
+    return rows.map(row => {
+      const newRow = [...row];
+      const sampleId = newRow[sampleIdCol];
+      
+      // Count occurrences of this sample ID
+      sampleIdCounts[sampleId] = (sampleIdCounts[sampleId] || 0) + 1;
+      
+      // If this is a duplicate (count > 1), append suffix
+      if (sampleIdCounts[sampleId] > 1) {
+        newRow[sampleIdCol] = `${sampleId}_${sampleIdCounts[sampleId]}`;
+        
+        // If Description is same as Sample_ID, update it too
+        const descriptionCol = findColumnIndex(headers, 'Description');
+        if (descriptionCol !== -1 && newRow[descriptionCol] === sampleId) {
+          newRow[descriptionCol] = newRow[sampleIdCol];
+        }
+      }
+      
+      return newRow;
+    });
   }
 
   async function processContent(content: string) {
     try {
-      // Parse sample sheet and get data section
-      const dataLines = parseIlluminaSampleSheet(content);
+      // Parse sample sheet and get both sections
+      const { headerSection, dataLines } = parseIlluminaSampleSheet(content);
       
-      // First line after [Data] contains headers
+      // First line of dataLines contains headers
       headers = dataLines[0].split(',').map(header => header.trim());
+
+      // Find indexes for Sample_ID and Description columns
+      const sampleIdCol = findColumnIndex(headers, 'Sample_ID');
+      const descriptionCol = findColumnIndex(headers, 'Description');
 
       // Store original rows if not already stored
       if (originalRows.length === 0) {
-        originalRows = dataLines.slice(1).map(line => 
-          line.split(',').map(cell => cell.trim())
-        );
+        // First process the rows to fill empty descriptions
+        const processedRows = dataLines.slice(1).map(line => {
+          const cells = line.split(',').map(cell => cell.trim());
+          // Fill empty Description with Sample_ID value
+          if (descriptionCol !== -1 && sampleIdCol !== -1 && !cells[descriptionCol]) {
+            cells[descriptionCol] = cells[sampleIdCol];
+          }
+          return cells;
+        });
+
+        // Then handle any duplicate Sample_IDs
+        originalRows = handleDuplicateSampleIds(processedRows, headers);
       }
 
       // Find index2 column position
@@ -99,7 +150,15 @@
 
   async function handleFile(uploadedFile: File) {
     file = uploadedFile;
+    // Reset all state variables
     reverseComplement500.set(false);
+    fileContent = '';
+    result = null;
+    error = null;
+    headers = [];
+    rows = [];
+    originalRows = []; // Important to reset this so new file processing works correctly
+    
     try {
       fileContent = await file.text();
       await processContent(fileContent);
@@ -159,45 +218,40 @@
       }
     }
 
-    // Get the header section from the original file
-    const headerSection: string[] = [];
-    const lines = fileContent.split(/\r?\n/);
-    let dataSection = false;
-    
-    for (const line of lines) {
-      if (line.trim() === '[Data]') {
-        headerSection.push(line);
-        break;
-      }
-      headerSection.push(line);
+    try {
+      // Get the header section from the original file
+      const { headerSection } = parseIlluminaSampleSheet(fileContent);
+
+      // Create CSV content with original header section
+      const csvContent = [
+        ...headerSection,
+        '[Data]',
+        downloadHeaders.join(','),
+        ...downloadRows.map(row => {
+          // Pad shorter rows with empty cells to match header length
+          const paddedRow = [...row];
+          while (paddedRow.length < downloadHeaders.length) {
+            paddedRow.push('');
+          }
+          return paddedRow.join(',');
+        })
+      ].join('\n');
+
+      // Create and trigger download
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = file ? 
+        `${file.name.split('.')[0]}_validated${removeProject ? '_no_project' : ''}.csv` : 
+        `validated${removeProject ? '_no_project' : ''}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      error = e instanceof Error ? e.message : 'An error occurred';
     }
-
-    // Create CSV content with original header section
-    const csvContent = [
-      ...headerSection,
-      downloadHeaders.join(','),
-      ...downloadRows.map(row => {
-        // Pad shorter rows with empty cells to match header length
-        const paddedRow = [...row];
-        while (paddedRow.length < downloadHeaders.length) {
-          paddedRow.push('');
-        }
-        return paddedRow.join(',');
-      })
-    ].join('\n');
-
-    // Create and trigger download
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = file ? 
-      `${file.name.split('.')[0]}_validated${removeProject ? '_no_project' : ''}.csv` : 
-      `validated${removeProject ? '_no_project' : ''}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   }
 
   function handleReverseComplementToggle(event: Event) {
