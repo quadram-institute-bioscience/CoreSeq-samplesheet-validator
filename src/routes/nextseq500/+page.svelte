@@ -13,6 +13,7 @@
   let headers: string[] = [];
   let rows: string[][] = [];
   let originalRows: string[][] = [];
+  let duplicateMessages: string[] = [];
 
   function findColumnIndex(headers: string[], columnName: string): number {
     const index = headers.findIndex(header => 
@@ -67,14 +68,18 @@
     };
   }
 
-  function handleDuplicateSampleIds(rows: string[][], headers: string[]): string[][] {
+  function handleDuplicateSampleIds(rows: string[][], headers: string[]): { 
+    updatedRows: string[][];
+    duplicateMessages: string[];
+  } {
     const sampleIdCol = findColumnIndex(headers, 'Sample_ID');
-    if (sampleIdCol === -1) return rows;
+    if (sampleIdCol === -1) return { updatedRows: rows, duplicateMessages: [] };
 
     // Track seen sample IDs and their count
     const sampleIdCounts: { [key: string]: number } = {};
+    const duplicateMessages: string[] = [];
     
-    return rows.map(row => {
+    const updatedRows = rows.map(row => {
       const newRow = [...row];
       const sampleId = newRow[sampleIdCol];
       
@@ -83,17 +88,21 @@
       
       // If this is a duplicate (count > 1), append suffix
       if (sampleIdCounts[sampleId] > 1) {
-        newRow[sampleIdCol] = `${sampleId}_${sampleIdCounts[sampleId]}`;
+        const newSampleId = `${sampleId}_${sampleIdCounts[sampleId]}`;
+        duplicateMessages.push(`Renamed duplicate Sample_ID: "${sampleId}" to "${newSampleId}"`);
+        newRow[sampleIdCol] = newSampleId;
         
         // If Description is same as Sample_ID, update it too
         const descriptionCol = findColumnIndex(headers, 'Description');
         if (descriptionCol !== -1 && newRow[descriptionCol] === sampleId) {
-          newRow[descriptionCol] = newRow[sampleIdCol];
+          newRow[descriptionCol] = newSampleId;
         }
       }
       
       return newRow;
     });
+    
+    return { updatedRows, duplicateMessages };
   }
 
   async function processContent(content: string) {
@@ -121,7 +130,9 @@
         });
 
         // Then handle any duplicate Sample_IDs
-        originalRows = handleDuplicateSampleIds(processedRows, headers);
+        const { updatedRows, duplicateMessages: newMessages } = handleDuplicateSampleIds(processedRows, headers);
+        originalRows = updatedRows;
+        duplicateMessages = newMessages;
       }
 
       // Find index2 column position
@@ -157,7 +168,8 @@
     error = null;
     headers = [];
     rows = [];
-    originalRows = []; // Important to reset this so new file processing works correctly
+    originalRows = [];
+    duplicateMessages = []; // Reset duplicate messages
     
     try {
       fileContent = await file.text();
@@ -365,6 +377,20 @@
             {#if error}
                 <div class="rounded-lg bg-red-50 p-4 shadow ring-1 ring-red-900/5">
                     <p class="text-red-600">{error}</p>
+                </div>
+            {/if}
+
+            <!-- Add this section after the Error Message section -->
+            {#if duplicateMessages.length > 0}
+                <div class="rounded-lg bg-yellow-50 p-4 shadow ring-1 ring-yellow-900/5">
+                    <h2 class="text-sm font-semibold text-yellow-900 mb-2">Sample ID Changes</h2>
+                    <ul class="list-disc list-inside text-sm">
+                        {#each duplicateMessages as message}
+                            <li class="text-yellow-800">
+                                {message}
+                            </li>
+                        {/each}
+                    </ul>
                 </div>
             {/if}
 
