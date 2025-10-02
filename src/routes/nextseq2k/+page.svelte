@@ -141,6 +141,7 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
         reverseComplement2k.set(false);
         fileContent = '';
 
+
         try {
             if (file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls')) {
                 fileContent = await parseExcel(file);
@@ -171,6 +172,7 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
             
             // Check if content has full structure
             const hasFullStructure = lines.some(line => line.includes('[Header]'));
+            console.log(`full structure:`, hasFullStructure)
             
             if (!hasFullStructure) {
                 // Simple CSV format - process directly
@@ -181,7 +183,9 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
 
                 // Define required columns (case-insensitive)
                 const requiredColumns = ['sample_id', 'index2', 'index', 'sample_project'];
+                console.log('required columns are:', requiredColumns);
                 const inputHeadersLower = inputHeaders.map(h => h.toLowerCase());
+                console.log('found columns are:', inputHeadersLower)
                 
                 // Check for required columns
                 const missingColumns = requiredColumns.filter(required => 
@@ -189,6 +193,7 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
                 );
                 
                 if (missingColumns.length > 0) {
+                    console.log('missing columns are:', missingColumns)
                     throw new Error(`Missing required columns: ${missingColumns.join(', ')}`);
                 }
 
@@ -259,6 +264,7 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
 
                 let foundDataSection = false;
                 for (const line of lines) {
+                    // iterate through file line by line until reaches 'bcl convert data' and toggle datasection -> True
                     if (line.includes('[BCLConvert_Data]')) {
                         foundDataSection = true;
                         dataSection = true;
@@ -266,8 +272,11 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
                         continue;
                     }
 
+                    // if in header section then push (append) lines to headersection variable
                     if (!dataSection) {
                         headerSection.push(line);
+                    
+                    // else start pushing (appending) to datalines variable
                     } else if (line.trim()) {
                         dataLines.push(line);
                     }
@@ -281,7 +290,24 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
                     throw new Error('No data found after [BCLConvert_Data] section');
                 }
 
-                headers = dataLines[0].split(',').map(header => header.trim());
+                const inputHeaders = dataLines[0].split(',').map(header => header.trim());
+
+                // Define required columns (case-insensitive)
+                const requiredColumns = ['sample_id', 'index2', 'index', 'sample_project'];
+                console.log('required columns are:', requiredColumns);
+                const inputHeadersLower = inputHeaders.map(h => h.toLowerCase());
+                console.log('found columns are:', inputHeadersLower)
+                
+                // Check for required columns
+                const missingColumns = requiredColumns.filter(required => 
+                    !inputHeadersLower.includes(required)
+                );
+                
+                if (missingColumns.length > 0) {
+                    console.log('missing columns are:', missingColumns)
+                    throw new Error(`Missing required columns: ${missingColumns.join(', ')}`);
+                }
+
                 originalRows = dataLines.slice(1)
                     .filter(line => line.trim())
                     .map(line => line.split(',').map(cell => cell.trim()));
@@ -657,7 +683,7 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
             </div>
 
             <!-- Summary Stats -->
-            {#if headers.length && rows.length}
+            {#if !error && headers.length && rows.length}
                 {@const stats = getSummaryStats()}
                 {#if stats}
                     <div class="bg-white rounded-lg shadow p-4">
@@ -705,6 +731,7 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
                         </div>
                     </div>
                 {/if}
+            {/if}
 
                 <!-- Error Message -->
                 {#if error}
@@ -754,7 +781,6 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
                         </div>
                     </div>
                 {/if}
-            {/if}
         </div>
     </div>
 </div> 
