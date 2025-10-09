@@ -9,18 +9,18 @@ const ADAPTER_LIST = {
 };
 
 const DNA_COMPLEMENT: Record<string, string> = {
-    'A': 'T',
-    'T': 'A',
-    'C': 'G',
-    'G': 'C'
+  'A': 'T',
+  'T': 'A',
+  'C': 'G',
+  'G': 'C'
 };
 
 export function reverseComplement(sequence: string): string {
-    return sequence
-        .split('')
-        .reverse()
-        .map(base => DNA_COMPLEMENT[base] || base)
-        .join('');
+  return sequence
+    .split('')
+    .reverse()
+    .map(base => DNA_COMPLEMENT[base] || base)
+    .join('');
 }
 
 export function removeSpecialChars(
@@ -124,8 +124,8 @@ export function validateSampleSheet(
 }
 
 export interface ValidationResult2k {
-    duplicatedIndexes: Record<string, string[]>;
-    // Add any NextSeq 2000 specific validation results here
+  duplicatedIndexes: Record<string, string[]>;
+  // Add any NextSeq 2000 specific validation results here
 }
 
 /**
@@ -134,16 +134,16 @@ export interface ValidationResult2k {
  * @returns The modified string with multiple special characters replaced by a single hyphen.
  */
 export function replaceSpecialCharacters(text: string): string {
-    if (!text) return text;
-    
-    // replace multiple special characters with a single hyphen
-    let result = text.replace(/[\W_]+/g, '-');
-    // replace multiple hyphens with a single hyphen
-    result = result.replace(/-+/g, '-');
-    // replace multiple underscores with a single underscore
-    result = result.replace(/_+/g, '_');
-    
-    return result;
+  if (!text) return text;
+
+  // replace multiple special characters with a single hyphen
+  let result = text.replace(/[\W_]+/g, '-');
+  // replace multiple hyphens with a single hyphen
+  result = result.replace(/-+/g, '-');
+  // replace multiple underscores with a single underscore
+  result = result.replace(/_+/g, '_');
+
+  return result;
 }
 
 /**
@@ -152,13 +152,13 @@ export function replaceSpecialCharacters(text: string): string {
  * @returns New array with renamed duplicates
  */
 export function renameDuplicates(values: string[]): string[] {
-    const counts = new Map<string, number>();
-    const result = values.map(value => {
-        const count = counts.get(value) || 0;
-        counts.set(value, count + 1);
-        return count === 0 ? value : `${value}-${count}`;
-    });
-    return result;
+  const counts = new Map<string, number>();
+  const result = values.map(value => {
+    const count = counts.get(value) || 0;
+    counts.set(value, count + 1);
+    return count === 0 ? value : `${value}-${count}`;
+  });
+  return result;
 }
 
 /**
@@ -167,11 +167,11 @@ export function renameDuplicates(values: string[]): string[] {
  * @returns New array with headers in title case
  */
 export function columnsToTitleCase(headers: string[]): string[] {
-    return headers.map(header => 
-        header.split('_')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-            .join('_')
-    );
+  return headers.map(header =>
+    header.split('_')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join('_')
+  );
 }
 
 /**
@@ -180,62 +180,70 @@ export function columnsToTitleCase(headers: string[]): string[] {
  * @returns Validation result object
  */
 export function validateSampleSheet2k(content: string): ValidationResult {
-    const lines = content.split(/\r?\n/);
-    let dataSection = false;
-    const duplicatedIndexes: Record<string, string[]> = {};
-    const indexCombinations = new Map<string, string[]>();
-    let headers: string[] = [];
+  const lines = content.split(/\r?\n/);
+  let dataSection = false;
+  const duplicatedIndexes: Record<string, string[]> = {};
+  const indexCombinations = new Map<string, string[]>();
+  let headers: string[] = [];
 
-    for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        
-        if (line === '[BCLConvert_Data]') {
-            dataSection = true;
-            continue;
-        }
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
 
-        if (!dataSection || !line) continue;
-
-        // Get headers from the first data line
-        if (!headers.length) {
-            headers = line.split(',').map(h => h.trim());
-            continue;
-        }
-
-        const cells = line.split(',').map(cell => cell.trim());
-        
-        const sampleId = cells[headers.findIndex(h => h.toLowerCase() === 'sample_id')] || '';
-        const index = cells[headers.findIndex(h => h.toLowerCase() === 'index')] || '';
-        const index2 = cells[headers.findIndex(h => h.toLowerCase() === 'index2')] || '';
-
-        if (!sampleId || !index) continue;
-
-        // Create a unique key for the index combination
-        const indexKey = `${index}-${index2}`;
-
-        if (indexCombinations.has(indexKey)) {
-            const samples = indexCombinations.get(indexKey)!;
-            samples.push(sampleId);
-            duplicatedIndexes[indexKey] = samples;
-        } else {
-            indexCombinations.set(indexKey, [sampleId]);
-        }
+    if (line === '[BCLConvert_Data]') {
+      dataSection = true;
+      continue;
     }
 
-    return {
-        duplicatedIndexes,
-        isValid: Object.keys(duplicatedIndexes).length === 0
-    };
+    if (!dataSection || !line) continue;
+
+    // Get headers from the first data line
+    if (!headers.length) {
+      headers = line.split(',').map(h => h.trim());
+      continue;
+    }
+
+    const cells = line.split(',').map(cell => cell.trim());
+
+    const sampleId = cells[headers.findIndex(h => h.toLowerCase() === 'sample_id')] || '';
+    const index = cells[headers.findIndex(h => h.toLowerCase() === 'index')] || '';
+    const index2 = cells[headers.findIndex(h => h.toLowerCase() === 'index2')] || '';
+
+    if (!sampleId || !index) continue;
+
+    // Create a unique key for the index combination
+    const indexKey = `${index}-${index2}`;
+
+    // look to see if index key has already been seen (key)
+    if (indexCombinations.has(indexKey)) {
+      // if exists, update the list of samples (value) 
+      const samples = indexCombinations.get(indexKey)!;
+      samples.push(sampleId);
+      indexCombinations.set(indexKey, samples);
+      // add indexkey (key), and updated samples list (value) to dupindex dict
+      duplicatedIndexes[indexKey] = samples;  // Mark as duplicate
+    } else {
+      // not previously seen, add to dict of existing index combinations
+      indexCombinations.set(indexKey, [sampleId]);
+    }
+
+  }
+  console.log('duplicated indexes:', duplicatedIndexes)
+  console.log('index combinations:', indexCombinations)
+
+  return {
+    duplicatedIndexes,
+    isValid: Object.keys(duplicatedIndexes).length === 0
+  };
 }
 
 // Helper function to check if a string is a valid DNA sequence
 function isDNASequence(sequence: string): boolean {
-    return /^[ATCG]+$/.test(sequence);
+  return /^[ATCG]+$/.test(sequence);
 }
 
 // Helper function to validate NextSeq 2000 specific requirements
 function validateNextSeq2kRequirements(index: string, index2: string): boolean {
-    // Add NextSeq 2000 specific validation rules here
-    // For example: length requirements, allowed sequences, etc.
-    return true;
+  // Add NextSeq 2000 specific validation rules here
+  // For example: length requirements, allowed sequences, etc.
+  return true;
 } 
