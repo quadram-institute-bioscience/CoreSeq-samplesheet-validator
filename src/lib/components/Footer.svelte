@@ -2,7 +2,7 @@
     <div class="mx-auto max-w-7xl px-6 py-4 md:flex md:items-center md:justify-between lg:px-8">
         <div class="text-center md:text-left">
             <p class="text-sm text-gray-500">
-                QIB CoreBioinformatics - Thanh Le Viet - 2025
+                QIB CoreBioinformatics - Thanh Le Viet & Kal Grimes - 2025
             </p>
         </div>
         <div class="mt-4 flex justify-center md:mt-0">

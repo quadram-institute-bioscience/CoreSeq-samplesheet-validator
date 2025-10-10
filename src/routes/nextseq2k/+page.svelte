@@ -198,6 +198,7 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
 			}
 
 			const lines = content.split(/\r?\n/).filter((line) => line.trim());
+			console.log("lines length is", lines.length)
 			if (lines.length === 0) {
 				throw new Error('File appears to be empty');
 			}
@@ -215,9 +216,7 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
 
 				// Define required columns (case-insensitive)
 				const requiredColumns = ['sample_id', 'index2', 'index', 'sample_project'];
-				console.log('required columns are:', requiredColumns);
 				const inputHeadersLower = inputHeaders.map((h) => h.toLowerCase());
-				console.log('found columns are:', inputHeadersLower);
 
 				// Check for required columns
 				const missingColumns = requiredColumns.filter(
@@ -225,7 +224,6 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
 				);
 
 				if (missingColumns.length > 0) {
-					console.log('missing columns are:', missingColumns);
 					throw new Error(`Missing required columns: ${missingColumns.join(', ')}`);
 				}
 
@@ -364,11 +362,11 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
 					);
 				}
 			}
-			
-			// Validate the content
-			console.log('entering validation');
-			result = validateSampleSheet2k(getFullContent());
-			error = null;
+
+			// // Validate the content
+			// console.log('entering validation');
+			// result = validateSampleSheet2k(getFullContent());
+			// error = null;
 		} catch (e) {
 			error = e instanceof Error ? e.message : 'An error occurred';
 			result = null;
