@@ -167,28 +167,52 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
 	): {
 		rows: string[][];
 		changedSampleIds: string[];
+		duplicatedIndexes: Record<string, string[]>;
 	} {
 		const changedSampleIds: string[] = [];
+		const duplicatedIndexes: Record<string, string[]> = {};
+		const indexCombinations = new Map<string, string[]>();
+
 		const sampleIdIndex = headers.map((h) => h.toLowerCase()).indexOf('sample_id');
+		const index1Index = headers.map((h) => h.toLowerCase()).indexOf('index');
+		const index2Index = headers.map((h) => h.toLowerCase()).indexOf('index2');
 
 		const rows = originalRows.map((row) => {
 			const newRow = [...row];
+
+			// Process Sample_ID
 			if (sampleIdIndex !== -1) {
 				const original = row[sampleIdIndex];
 				const cleaned = replaceSpecialCharacters(original);
 
-				// Check if the value changed
 				if (original !== cleaned) {
 					changedSampleIds.push(original);
 				}
 
 				newRow[sampleIdIndex] = cleaned;
 			}
+
+			// Check for duplicate index combinations
+			if (index1Index !== -1 && index2Index !== -1) {
+				const sampleId = row[sampleIdIndex] || 'Unknown';
+				const index1 = row[index1Index] || '';
+				const index2 = row[index2Index] || '';
+				const indexKey = `${index2}-${index1}`;
+
+				if (indexCombinations.has(indexKey)) {
+					const samples = indexCombinations.get(indexKey)!;
+					samples.push(sampleId);
+					duplicatedIndexes[indexKey] = samples;
+				} else {
+					indexCombinations.set(indexKey, [sampleId]);
+				}
+			}
+
 			console.log(newRow);
 			return newRow;
 		});
 
-		return { rows, changedSampleIds };
+		return { rows, changedSampleIds, duplicatedIndexes };
 	}
 
 	async function processContent(content: string) {
@@ -198,7 +222,7 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
 			}
 
 			const lines = content.split(/\r?\n/).filter((line) => line.trim());
-			console.log("lines length is", lines.length)
+			console.log('lines length is', lines.length);
 			if (lines.length === 0) {
 				throw new Error('File appears to be empty');
 			}
@@ -292,6 +316,7 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
 				let dataLines: string[] = [];
 				headerSection = [];
 				let changedSampleIds: string[] = [];
+				let duplicatedIndexesList: Record<string, string[]> = {};
 				let foundDataSection = false;
 
 				for (const line of lines) {
@@ -351,15 +376,24 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
 					.map((line) => line.split(',').map((cell) => cell.trim()));
 
 				// Process Sample_ID column
-				const rowResult = processRows(originalRows, headers);
-				rows = rowResult.rows;
-				changedSampleIds = rowResult.changedSampleIds;
+				const processedRows = processRows(originalRows, headers);
+				rows = processedRows.rows;
+				changedSampleIds = processedRows.changedSampleIds;
+				duplicatedIndexesList = processedRows.duplicatedIndexes;
 
 				// Check if any sample IDs were changed and throw error
 				if (changedSampleIds.length > 0) {
 					throw new Error(
 						`Invalid characters found in Sample_ID. The following sample IDs contain special characters: ${changedSampleIds.join(', ')}`
 					);
+				}
+
+				// check if duplicated indexes exist
+				if (Object.keys(duplicatedIndexesList).length > 0) {
+					const duplicateDetails = Object.entries(duplicatedIndexesList)
+						.map(([indexCombo, samples]) => `"${indexCombo}" used by: ${samples.join(', ')}`)
+						.join('; ');
+					throw new Error(`Duplicate index combinations found: ${duplicateDetails}`);
 				}
 			}
 
