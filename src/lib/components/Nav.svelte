@@ -11,7 +11,7 @@
                     <span class="text-lg font-semibold text-gray-900">Sample Sheet Validator</span>
                 </div>
                 <div class="ml-6 flex space-x-8">
-                    <a
+                    <!-- <a
                         href={`${base}/nextseq500`}
                         class={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium
                         ${$page.url.pathname === `${base}/nextseq500` 
@@ -20,7 +20,7 @@
                         }`}
                     >
                         NextSeq 500/550
-                    </a>
+                    </a> -->
                     <a
                         href={`${base}/nextseq2k`}
                         class={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium
@@ -31,7 +31,7 @@
                     >
                         NextSeq 1000/2000
                     </a>
-                    <a
+                    <!-- <a
                         href={`${base}/ont`}
                         class={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium
                         ${$page.url.pathname === `${base}/ont`
@@ -40,7 +40,7 @@
                         }`}
                     >
                         ONT
-                    </a>
+                    </a> -->
                 </div>
             </div>
         </div>

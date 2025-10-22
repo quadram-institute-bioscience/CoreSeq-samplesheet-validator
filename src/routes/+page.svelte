@@ -7,7 +7,7 @@
 </script>
 
 <svelte:head>
-    <meta http-equiv="refresh" content={`0;url=${base}/nextseq500`}>
+    <meta http-equiv="refresh" content={`0;url=${base}/nextseq2k`}>
 </svelte:head>
 
 <div class="flex items-center justify-center min-h-screen">
