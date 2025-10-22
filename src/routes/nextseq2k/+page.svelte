@@ -232,84 +232,85 @@ NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,
 			console.log(`full structure:`, hasFullStructure);
 
 			if (!hasFullStructure) {
-				// Simple CSV format - process directly
-				const inputHeaders = lines[0].split(',').map((header) => header.trim());
-				if (!inputHeaders.length) {
-					throw new Error('No headers found in the file');
-				}
+				throw new Error('Validation only works on samplesheets with completed header section.');
+				// // Simple CSV format - process directly
+				// const inputHeaders = lines[0].split(',').map((header) => header.trim());
+				// if (!inputHeaders.length) {
+				// 	throw new Error('No headers found in the file');
+				// }
 
-				// Define required columns (case-insensitive)
-				const requiredColumns = ['sample_id', 'index2', 'index', 'sample_project'];
-				const inputHeadersLower = inputHeaders.map((h) => h.toLowerCase());
+				// // Define required columns (case-insensitive)
+				// const requiredColumns = ['sample_id', 'index2', 'index', 'sample_project'];
+				// const inputHeadersLower = inputHeaders.map((h) => h.toLowerCase());
 
-				// Check for required columns
-				const missingColumns = requiredColumns.filter(
-					(required) => !inputHeadersLower.includes(required)
-				);
+				// // Check for required columns
+				// const missingColumns = requiredColumns.filter(
+				// 	(required) => !inputHeadersLower.includes(required)
+				// );
 
-				if (missingColumns.length > 0) {
-					throw new Error(`Missing required columns: ${missingColumns.join(', ')}`);
-				}
+				// if (missingColumns.length > 0) {
+				// 	throw new Error(`Missing required columns: ${missingColumns.join(', ')}`);
+				// }
 
-				// Create mapping while preserving original header cases
-				const headerMap = new Map<number, number>();
-				requiredColumns.forEach((required, index) => {
-					const inputIndex = inputHeadersLower.findIndex((h) => h === required);
-					if (inputIndex !== -1) {
-						headerMap.set(inputIndex, index);
-					}
-				});
+				// // Create mapping while preserving original header cases
+				// const headerMap = new Map<number, number>();
+				// requiredColumns.forEach((required, index) => {
+				// 	const inputIndex = inputHeadersLower.findIndex((h) => h === required);
+				// 	if (inputIndex !== -1) {
+				// 		headerMap.set(inputIndex, index);
+				// 	}
+				// });
 
-				// Use original input headers for the required columns
-				headers = requiredColumns.map((required) => {
-					const inputIndex = inputHeadersLower.findIndex((h) => h === required);
-					return inputHeaders[inputIndex];
-				});
+				// // Use original input headers for the required columns
+				// headers = requiredColumns.map((required) => {
+				// 	const inputIndex = inputHeadersLower.findIndex((h) => h === required);
+				// 	return inputHeaders[inputIndex];
+				// });
 
-				originalRows = lines
-					.slice(1)
-					.filter((line) => line.trim())
-					.map((line) => {
-						const cells = line.split(',').map((cell) => cell.trim());
-						const reorderedCells = new Array(requiredColumns.length).fill('');
+				// originalRows = lines
+				// 	.slice(1)
+				// 	.filter((line) => line.trim())
+				// 	.map((line) => {
+				// 		const cells = line.split(',').map((cell) => cell.trim());
+				// 		const reorderedCells = new Array(requiredColumns.length).fill('');
 
-						headerMap.forEach((newIndex, oldIndex) => {
-							if (cells[oldIndex]) {
-								reorderedCells[newIndex] = cells[oldIndex];
-							}
-						});
+				// 		headerMap.forEach((newIndex, oldIndex) => {
+				// 			if (cells[oldIndex]) {
+				// 				reorderedCells[newIndex] = cells[oldIndex];
+				// 			}
+				// 		});
 
-						return reorderedCells;
-					});
+				// 		return reorderedCells;
+				// 	});
 
-				if (originalRows.length === 0) {
-					throw new Error('No data rows found in the file');
-				}
+				// if (originalRows.length === 0) {
+				// 	throw new Error('No data rows found in the file');
+				// }
 
-				// Generate header section
-				headerSection = [
-					'[Header],,,',
-					'FileFormatVersion,2,,',
-					`RunName,${runName},,`,
-					'InstrumentPlatform,NextSeq1k2k,,',
-					'InstrumentType,NextSeq2000,,',
-					',,,',
-					'[Reads],,,',
-					`Read1Cycles,${read1Cycle},,`,
-					`Read2Cycles,${read2Cycle},,`,
-					`Index1Cycles,${index1Cycle},,`,
-					`Index2Cycles,${index2Cycle},,`,
-					',,,',
-					'[BCLConvert_Settings],,,',
-					`SoftwareVersion,${bclVersion},,`,
-					`BarcodeMismatchesIndex1,${barcodeMismatchesIndex1},,`,
-					`BarcodeMismatchesIndex2,${barcodeMismatchesIndex2},,`,
-					`AdapterRead1,${adapterRead1},,`,
-					`AdapterRead2,${adapterRead2},,`,
-					`NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,`,
-					',,,',
-					'[BCLConvert_Data],,,'
-				];
+				// // Generate header section
+				// headerSection = [
+				// 	'[Header],,,',
+				// 	'FileFormatVersion,2,,',
+				// 	`RunName,${runName},,`,
+				// 	'InstrumentPlatform,NextSeq1k2k,,',
+				// 	'InstrumentType,NextSeq2000,,',
+				// 	',,,',
+				// 	'[Reads],,,',
+				// 	`Read1Cycles,${read1Cycle},,`,
+				// 	`Read2Cycles,${read2Cycle},,`,
+				// 	`Index1Cycles,${index1Cycle},,`,
+				// 	`Index2Cycles,${index2Cycle},,`,
+				// 	',,,',
+				// 	'[BCLConvert_Settings],,,',
+				// 	`SoftwareVersion,${bclVersion},,`,
+				// 	`BarcodeMismatchesIndex1,${barcodeMismatchesIndex1},,`,
+				// 	`BarcodeMismatchesIndex2,${barcodeMismatchesIndex2},,`,
+				// 	`AdapterRead1,${adapterRead1},,`,
+				// 	`AdapterRead2,${adapterRead2},,`,
+				// 	`NoLaneSplitting,${noLaneSplitting ? 'TRUE' : 'FALSE'},,`,
+				// 	',,,',
+				// 	'[BCLConvert_Data],,,'
+				// ];
 			} else {
 				// Full structure format
 				let dataSection = false;
