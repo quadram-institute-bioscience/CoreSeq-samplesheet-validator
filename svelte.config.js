@@ -14,7 +14,7 @@ const config = {
 			strict: true
 		}),
 		paths: {
-			base: process.env.NODE_ENV === 'production' ? '/sample-sheet-validator' : ''
+			base: process.env.NODE_ENV === 'production' ? '/CoreSeq-samplesheet-validator' : ''
 		}
 	},
 	preprocess: vitePreprocess()
