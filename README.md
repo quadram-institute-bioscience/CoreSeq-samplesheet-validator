@@ -2,7 +2,10 @@
 
 A simple svelte project for validating and generating sample sheets for Nextseq run and ONT basecalling.
 
-The app is hosted on Github Pages and can be accessed at https://corebio.info/sample-sheet-validator
+The app is hosted on Github Pages and can be accessed at [https://corebio.info/CoreSeq-samplesheet-validator/](https://corebio.info/CoreSeq-samplesheet-validator/)
+
+> ONT and Nextseq500 validation have been disabled pending maintenance or refactor.
+
 
 ## Developing
 
